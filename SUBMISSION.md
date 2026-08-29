@@ -2,6 +2,7 @@
 
 Candidate Name: **Abhishek Gupta**  
 Email: [abhishekgupta0834@gmail.com](mailto:abhishekgupta0834@gmail.com)  
+GitHub Profile: [https://github.com/Abhi0833-eng](https://github.com/Abhi0833-eng)  
 Project Name: **Ajaia Docs**  
 Date: **August 29, 2026**
 
@@ -11,13 +12,13 @@ Date: **August 29, 2026**
 
 | Deliverable | Location / Details |
 | :--- | :--- |
-| **Source Code Repository** | Full Next.js 14 TypeScript project in `scratch/ajaia-docs` |
+| **GitHub Source Code Repository** | [https://github.com/Abhi0833-eng/ajaia-docs](https://github.com/Abhi0833-eng/ajaia-docs) |
 | **Local Setup Guide** | [`README.md`](file:///C:/Users/abhis/.gemini/antigravity-ide/scratch/ajaia-docs/README.md) |
 | **Architecture & Tradeoffs Note** | [`ARCHITECTURE.md`](file:///C:/Users/abhis/.gemini/antigravity-ide/scratch/ajaia-docs/ARCHITECTURE.md) |
 | **AI-Native Workflow Note** | [`AI_WORKFLOW.md`](file:///C:/Users/abhis/.gemini/antigravity-ide/scratch/ajaia-docs/AI_WORKFLOW.md) |
 | **Product Walkthrough Guide** | [`WALKTHROUGH.md`](file:///C:/Users/abhis/.gemini/antigravity-ide/scratch/ajaia-docs/WALKTHROUGH.md) |
 | **Walkthrough Video URL** | `https://youtu.be/sample-walkthrough-link` *(Placeholder)* |
-| **Live Product Deployment URL** | `https://ajaia-docs.vercel.app` *(Placeholder / Local Ready)* |
+| **Live Product Deployment URL** | `https://rich-things-yell.loca.lt` *(Live Public Host)* |
 
 ---
 
@@ -71,17 +72,21 @@ To make reviewing permissions seamless without creating accounts:
 ## 🛠️ Instructions to Run Locally
 
 ```bash
-# 1. Install dependencies
+# 1. Clone repository
+git clone https://github.com/Abhi0833-eng/ajaia-docs.git
+cd ajaia-docs
+
+# 2. Install dependencies
 npm install --legacy-peer-deps
 
-# 2. Push Prisma schema & seed test data
+# 3. Push Prisma schema & seed test data
 npm run db:push
 node prisma/seed.js
 
-# 3. Run automated tests
+# 4. Run automated tests
 npm test
 
-# 4. Start dev server
+# 5. Start dev server
 npm run dev
 ```
 Open [http://localhost:3000](http://localhost:3000) to test.
