@@ -1,0 +1,53 @@
+// Prisma schema for Ajaia Docs
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id        String     @id @default(uuid())
+  email     String     @unique
+  name      String
+  avatar    String?
+  documents Document[] @relation("OwnedDocuments")
+  shares    Share[]
+  createdAt DateTime   @default(now())
+}
+
+model Document {
+  id        String    @id @default(uuid())
+  title     String    @default("Untitled Document")
+  content   String    @default("<p>Start typing your document here...</p>")
+  ownerId   String
+  owner     User      @relation("OwnedDocuments", fields: [ownerId], references: [id], onDelete: Cascade)
+  shares    Share[]
+  histories History[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Share {
+  id         String   @id @default(uuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       String   @default("VIEWER") // VIEWER | EDITOR
+  createdAt  DateTime @default(now())
+
+  @@unique([documentId, userId])
+}
+
+model History {
+  id         String   @id @default(uuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  content    String
+  title      String
+  savedAt    DateTime @default(now())
+}
