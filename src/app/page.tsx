@@ -10,11 +10,34 @@ import { ExportModal } from '@/components/ExportModal';
 import { AIDraftModal } from '@/components/AIDraftModal';
 import { VersionHistoryModal } from '@/components/VersionHistoryModal';
 import { DocumentItem, User } from '@/lib/types';
-import { Loader2, FilePlus, Sparkles } from 'lucide-react';
+import { Loader2, FilePlus } from 'lucide-react';
+
+const DEFAULT_USER: User = {
+  id: 'usr_alex_01',
+  name: 'Alex Rivera',
+  email: 'alex@ajaia.com',
+  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+};
+
+const DEFAULT_USERS_LIST: User[] = [
+  DEFAULT_USER,
+  {
+    id: 'usr_sarah_02',
+    name: 'Sarah Chen',
+    email: 'sarah@ajaia.com',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
+  },
+  {
+    id: 'usr_devin_03',
+    name: 'Devin Miller',
+    email: 'devin@ajaia.com',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+  },
+];
 
 export default function Home() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<User[]>(DEFAULT_USERS_LIST);
+  const [currentUser, setCurrentUser] = useState<User>(DEFAULT_USER);
   const [ownedDocs, setOwnedDocs] = useState<DocumentItem[]>([]);
   const [sharedDocs, setSharedDocs] = useState<DocumentItem[]>([]);
   const [currentDoc, setCurrentDoc] = useState<DocumentItem | null>(null);
@@ -30,7 +53,7 @@ export default function Home() {
 
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Initial Load: Fetch Users
+  // Initial Load: Fetch Users & Docs
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -41,12 +64,9 @@ export default function Home() {
       const data = await res.json();
       if (res.ok && data.users?.length > 0) {
         setUsers(data.users);
-        // Default to Alex Rivera or first user
-        const defaultUser = data.users.find((u: User) => u.id === 'usr_alex_01') || data.users[0];
-        setCurrentUser(defaultUser);
       }
     } catch (err) {
-      console.error('Failed to load users:', err);
+      console.error('Failed to load users from API, using default list:', err);
     }
   };
 
@@ -173,7 +193,6 @@ export default function Home() {
 
       if (res.ok) {
         setSaveStatus('saved');
-        // Update title in sidebar arrays without full refetch
         setOwnedDocs((prev) =>
           prev.map((d) => (d.id === docId ? { ...d, title, content } : d))
         );
@@ -211,7 +230,6 @@ export default function Home() {
       throw new Error(data.error || 'Failed to share document');
     }
 
-    // Refresh current doc details
     fetchDocuments(currentUser.id, currentDoc.id);
   };
 
@@ -271,15 +289,6 @@ export default function Home() {
       throw new Error(data.error || 'Failed to restore history snapshot');
     }
   };
-
-  if (!currentUser) {
-    return (
-      <div className="h-screen w-screen bg-slate-950 flex flex-col items-center justify-center text-slate-300">
-        <Loader2 className="w-8 h-8 text-indigo-500 animate-spin mb-3" />
-        <p className="text-xs font-semibold">Initializing Ajaia Docs Environment...</p>
-      </div>
-    );
-  }
 
   const isReadOnly = currentDoc?.currentUserRole === 'VIEWER';
 
