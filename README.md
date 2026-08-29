@@ -2,7 +2,16 @@
 
 A lightweight, high-performance collaborative document editing application inspired by Google Docs, built for **Ajaia LLC's AI-Native Full Stack Developer Assignment**.
 
-Candidate: **Abhishek Gupta** ([abhishekgupta0834@gmail.com](mailto:abhishekgupta0834@gmail.com))
+Candidate: **Abhishek Gupta** ([abhishekgupta0834@gmail.com](mailto:abhishekgupta0834@gmail.com))  
+Live Deployment: [https://ajaia-docs-five-mu.vercel.app](https://ajaia-docs-five-mu.vercel.app)  
+GitHub Repository: [https://github.com/Abhi0833-eng/ajaia-docs](https://github.com/Abhi0833-eng/ajaia-docs)
+
+---
+
+## 🌟 Live Product Deployment
+
+Access the live working deployment directly in your browser:
+👉 **[https://ajaia-docs-five-mu.vercel.app](https://ajaia-docs-five-mu.vercel.app)**
 
 ---
 
@@ -61,7 +70,7 @@ Candidate: **Abhishek Gupta** ([abhishekgupta0834@gmail.com](mailto:abhishekgupt
 
 ### 1. Clone & Install Dependencies
 ```bash
-git clone <repository-url>
+git clone https://github.com/Abhi0833-eng/ajaia-docs.git
 cd ajaia-docs
 npm install --legacy-peer-deps
 ```
@@ -91,7 +100,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## 🧪 Testing Sharing & Permission Logic
 
-1. Open the application at `http://localhost:3000`. By default, you are logged in as **Alex Rivera (Owner)**.
+1. Open the application at [https://ajaia-docs-five-mu.vercel.app](https://ajaia-docs-five-mu.vercel.app). By default, you are logged in as **Alex Rivera (Owner)**.
 2. Select **"Ajaia Product Roadmap & Q3 Objectives"**. Notice you can edit, format text, and click **Share**.
 3. In the top-right header, open the **User Switcher** dropdown and click **Devin Miller**.
 4. Notice the banner: **"Read-Only Mode: You have Viewer permissions"**. Formatting buttons are disabled and content changes are rejected by backend security.

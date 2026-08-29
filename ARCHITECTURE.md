@@ -1,6 +1,8 @@
 # 🏗️ Architecture & Technical Decision Note - Ajaia Docs
 
-Candidate: **Abhishek Gupta** ([abhishekgupta0834@gmail.com](mailto:abhishekgupta0834@gmail.com))
+Candidate: **Abhishek Gupta** ([abhishekgupta0834@gmail.com](mailto:abhishekgupta0834@gmail.com))  
+Live Deployment: [https://ajaia-docs-five-mu.vercel.app](https://ajaia-docs-five-mu.vercel.app)  
+GitHub Repository: [https://github.com/Abhi0833-eng/ajaia-docs](https://github.com/Abhi0833-eng/ajaia-docs)
 
 ---
 
@@ -9,7 +11,9 @@ Candidate: **Abhishek Gupta** ([abhishekgupta0834@gmail.com](mailto:abhishekgupt
 When building **Ajaia Docs** under tight time constraints (4-6 hours), the primary architectural goal was to maximize **product fidelity and security correctness** without over-engineering infrastructure.
 
 ### Core Tradeoff Principles:
-1. **Pragmatic Persistence over Complex Cloud DB Setup**: Selected **SQLite + Prisma ORM** instead of PostgreSQL or Supabase. SQLite requires zero cloud credentials or database connection strings for reviewers to configure, while providing full ACID transaction guarantees and relational key enforcement (`User`, `Document`, `Share`, `History`).
+1. **Pragmatic Persistence & Serverless Fallback Architecture**:
+   - Local Environment: **SQLite + Prisma ORM** storing relational records (`User`, `Document`, `Share`, `History`).
+   - Live Vercel Environment: Integrated a resilient **In-Memory Data Repository** (`src/lib/memoryDb.ts`) that handles users, documents, role permissions, and version snapshots without throwing serverless file-locking errors.
 2. **Standard Rich Text Model over WebSockets / Yjs CRDTs**: Recreating full Yjs/CRDT real-time multi-cursor collaboration within 6 hours risks shallow bugs and incomplete UI flows. Instead, prioritized **TipTap / ProseMirror rich text formatting**, automatic debounced cloud persistence, and strict server-side permission controls.
 3. **Frictionless Reviewer Auth Simulation**: Implemented an explicit header-level User Switcher (`Alex - Owner`, `Sarah - Editor`, `Devin - Viewer`) backed by session headers (`x-user-id`) instead of requiring reviewers to manually create 3 separate email accounts and verify OTP tokens.
 
@@ -37,9 +41,10 @@ When building **Ajaia Docs** under tight time constraints (4-6 hours), the prima
                                      │
                                      ▼
 ┌────────────────────────────────────────────────────────────────────────┐
-│                       SQLite Database (Prisma ORM)                     │
+│                   Relational Persistence / Fallback Store              │
 │                                                                        │
-│  [User] ──< [OwnedDocuments]     [Document] ──< [Shares] (VIEWER/EDITOR)│
+│  [Prisma SQLite] / [In-Memory Serverless Data Repository]              │
+│  Users, Documents, Shares (VIEWER/EDITOR), Version Snapshots           │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
