@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@prisma/client": "^5.10.0",
+    "@tailwindcss/postcss": "^4.3.3",
     "@tiptap/extension-heading": "^2.2.4",
     "@tiptap/extension-text-align": "^2.2.4",
     "@tiptap/extension-underline": "^2.2.4",
@@ -21,8 +22,8 @@
     "@tiptap/starter-kit": "^2.2.4",
     "clsx": "^2.1.0",
     "lucide-react": "^0.344.0",
-    "mammoth": "^1.7.0",
-    "marked": "^12.0.1",
+    "mammoth": "^1.12.2",
+    "marked": "^12.0.2",
     "next": "^16.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

@@ -1,69 +1,391 @@
-import Image from "next/image";
+'use client';
+
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Header } from '@/components/Header';
+import { Sidebar } from '@/components/Sidebar';
+import { TipTapEditor } from '@/components/TipTapEditor';
+import { ShareModal } from '@/components/ShareModal';
+import { FileUploadModal } from '@/components/FileUploadModal';
+import { ExportModal } from '@/components/ExportModal';
+import { AIDraftModal } from '@/components/AIDraftModal';
+import { VersionHistoryModal } from '@/components/VersionHistoryModal';
+import { DocumentItem, User } from '@/lib/types';
+import { Loader2, FilePlus, Sparkles } from 'lucide-react';
 
 export default function Home() {
+  const [users, setUsers] = useState<User[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [ownedDocs, setOwnedDocs] = useState<DocumentItem[]>([]);
+  const [sharedDocs, setSharedDocs] = useState<DocumentItem[]>([]);
+  const [currentDoc, setCurrentDoc] = useState<DocumentItem | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
+
+  // Modals
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [showAIDraftModal, setShowAIDraftModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Initial Load: Fetch Users
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch('/api/users');
+      const data = await res.json();
+      if (res.ok && data.users?.length > 0) {
+        setUsers(data.users);
+        // Default to Alex Rivera or first user
+        const defaultUser = data.users.find((u: User) => u.id === 'usr_alex_01') || data.users[0];
+        setCurrentUser(defaultUser);
+      }
+    } catch (err) {
+      console.error('Failed to load users:', err);
+    }
+  };
+
+  // Fetch Documents when active user changes
+  const fetchDocuments = useCallback(async (userId: string, selectDocId?: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/documents?userId=${userId}`, {
+        headers: { 'x-user-id': userId },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setOwnedDocs(data.owned || []);
+        setSharedDocs(data.shared || []);
+
+        const allDocs: DocumentItem[] = [...(data.owned || []), ...(data.shared || [])];
+
+        if (allDocs.length > 0) {
+          if (selectDocId) {
+            const target = allDocs.find((d) => d.id === selectDocId) || allDocs[0];
+            setCurrentDoc(target);
+          } else {
+            setCurrentDoc(allDocs[0]);
+          }
+        } else {
+          setCurrentDoc(null);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch documents:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (currentUser) {
+      fetchDocuments(currentUser.id);
+    }
+  }, [currentUser, fetchDocuments]);
+
+  // Switch Active Test User
+  const handleSwitchUser = (newUser: User) => {
+    setCurrentUser(newUser);
+  };
+
+  // Create New Blank Document
+  const handleCreateDocument = async () => {
+    if (!currentUser) return;
+    try {
+      const res = await fetch('/api/documents', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': currentUser.id,
+        },
+        body: JSON.stringify({
+          title: 'Untitled Document',
+          content: '<h1>Untitled Document</h1><p>Start typing your content here...</p>',
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.document) {
+        fetchDocuments(currentUser.id, data.document.id);
+      }
+    } catch (err) {
+      console.error('Error creating document:', err);
+    }
+  };
+
+  // Delete Document (Owner only)
+  const handleDeleteDocument = async (docId: string) => {
+    if (!currentUser) return;
+    try {
+      const res = await fetch(`/api/documents/${docId}`, {
+        method: 'DELETE',
+        headers: { 'x-user-id': currentUser.id },
+      });
+      if (res.ok) {
+        fetchDocuments(currentUser.id);
+      }
+    } catch (err) {
+      console.error('Error deleting document:', err);
+    }
+  };
+
+  // Autosave Handler
+  const handleDocChange = (newHtml: string) => {
+    if (!currentDoc || currentDoc.currentUserRole === 'VIEWER') return;
+
+    setCurrentDoc((prev) => (prev ? { ...prev, content: newHtml } : null));
+    setSaveStatus('unsaved');
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    saveTimeoutRef.current = setTimeout(() => {
+      saveDocumentChanges(currentDoc.id, currentDoc.title, newHtml);
+    }, 1200);
+  };
+
+  const handleTitleUpdate = (newTitle: string) => {
+    if (!currentDoc || currentDoc.currentUserRole === 'VIEWER') return;
+
+    setCurrentDoc((prev) => (prev ? { ...prev, title: newTitle } : null));
+    saveDocumentChanges(currentDoc.id, newTitle, currentDoc.content);
+  };
+
+  const saveDocumentChanges = async (docId: string, title: string, content: string) => {
+    if (!currentUser) return;
+    setSaveStatus('saving');
+
+    try {
+      const res = await fetch(`/api/documents/${docId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': currentUser.id,
+        },
+        body: JSON.stringify({ title, content }),
+      });
+
+      if (res.ok) {
+        setSaveStatus('saved');
+        // Update title in sidebar arrays without full refetch
+        setOwnedDocs((prev) =>
+          prev.map((d) => (d.id === docId ? { ...d, title, content } : d))
+        );
+        setSharedDocs((prev) =>
+          prev.map((d) => (d.id === docId ? { ...d, title, content } : d))
+        );
+      } else {
+        setSaveStatus('unsaved');
+      }
+    } catch (err) {
+      console.error('Autosave error:', err);
+      setSaveStatus('unsaved');
+    }
+  };
+
+  // Grant Share Permission
+  const handleGrantShare = async (targetUserId: string, role: 'VIEWER' | 'EDITOR') => {
+    if (!currentDoc || !currentUser) return;
+
+    const res = await fetch('/api/share', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-user-id': currentUser.id,
+      },
+      body: JSON.stringify({
+        documentId: currentDoc.id,
+        targetUserId,
+        role,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to share document');
+    }
+
+    // Refresh current doc details
+    fetchDocuments(currentUser.id, currentDoc.id);
+  };
+
+  // Revoke Share Permission
+  const handleRevokeShare = async (targetUserId: string) => {
+    if (!currentDoc || !currentUser) return;
+
+    const res = await fetch(
+      `/api/share?documentId=${currentDoc.id}&userId=${targetUserId}`,
+      {
+        method: 'DELETE',
+        headers: { 'x-user-id': currentUser.id },
+      }
+    );
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Failed to revoke access');
+    }
+
+    fetchDocuments(currentUser.id, currentDoc.id);
+  };
+
+  // Handle Imported Upload Document
+  const handleUploadSuccess = (uploadedResult: any) => {
+    if (currentUser) {
+      if (uploadedResult.id) {
+        fetchDocuments(currentUser.id, uploadedResult.id);
+      } else if (uploadedResult.html && currentDoc) {
+        const appendedContent = currentDoc.content + uploadedResult.html;
+        handleDocChange(appendedContent);
+      }
+    }
+  };
+
+  // Append AI Content
+  const handleInsertAIContent = (aiHtml: string) => {
+    if (currentDoc) {
+      const updated = currentDoc.content + aiHtml;
+      handleDocChange(updated);
+    }
+  };
+
+  // Restore History Version
+  const handleRestoreHistory = async (historyId: string) => {
+    if (!currentUser || !currentDoc) return;
+
+    const res = await fetch(`/api/history/${historyId}`, {
+      method: 'POST',
+      headers: { 'x-user-id': currentUser.id },
+    });
+
+    if (res.ok) {
+      fetchDocuments(currentUser.id, currentDoc.id);
+    } else {
+      const data = await res.json();
+      throw new Error(data.error || 'Failed to restore history snapshot');
+    }
+  };
+
+  if (!currentUser) {
+    return (
+      <div className="h-screen w-screen bg-slate-950 flex flex-col items-center justify-center text-slate-300">
+        <Loader2 className="w-8 h-8 text-indigo-500 animate-spin mb-3" />
+        <p className="text-xs font-semibold">Initializing Ajaia Docs Environment...</p>
+      </div>
+    );
+  }
+
+  const isReadOnly = currentDoc?.currentUserRole === 'VIEWER';
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="flex h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden font-sans">
+      {/* Sidebar */}
+      <Sidebar
+        ownedDocs={ownedDocs}
+        sharedDocs={sharedDocs}
+        currentDocId={currentDoc?.id || null}
+        currentUser={currentUser}
+        onSelectDoc={(id) => {
+          const doc = [...ownedDocs, ...sharedDocs].find((d) => d.id === id);
+          if (doc) setCurrentDoc(doc);
+        }}
+        onCreateDoc={handleCreateDocument}
+        onOpenUpload={() => setShowUploadModal(true)}
+        onDeleteDoc={handleDeleteDocument}
+      />
+
+      {/* Main Surface */}
+      <main className="flex-1 flex flex-col min-w-0 h-full relative">
+        <Header
+          document={currentDoc}
+          currentUser={currentUser}
+          allUsers={users}
+          onSwitchUser={handleSwitchUser}
+          onUpdateTitle={handleTitleUpdate}
+          onOpenShare={() => setShowShareModal(true)}
+          onOpenExport={() => setShowExportModal(true)}
+          onOpenAIDraft={() => setShowAIDraftModal(true)}
+          onOpenHistory={() => setShowHistoryModal(true)}
+          saveStatus={saveStatus}
+          isReadOnly={isReadOnly}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+
+        {loading ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-slate-400 bg-slate-950">
+            <Loader2 className="w-8 h-8 text-indigo-500 animate-spin mb-2" />
+            <span className="text-xs">Loading document...</span>
+          </div>
+        ) : currentDoc ? (
+          <TipTapEditor
+            key={currentDoc.id}
+            content={currentDoc.content}
+            onChange={handleDocChange}
+            isReadOnly={isReadOnly}
+          />
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center text-slate-400 bg-slate-950 p-6 text-center">
+            <FilePlus className="w-12 h-12 text-slate-700 mb-3" />
+            <h3 className="text-base font-bold text-slate-200">No Document Selected</h3>
+            <p className="text-xs text-slate-500 max-w-sm mt-1 mb-4">
+              Select a document from the left sidebar, or create a new blank document to start editing.
+            </p>
+            <button
+              onClick={handleCreateDocument}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold text-xs transition-all shadow-md shadow-indigo-600/20"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+              Create New Document
+            </button>
+          </div>
+        )}
       </main>
+
+      {/* Modals */}
+      {showShareModal && currentDoc && (
+        <ShareModal
+          document={currentDoc}
+          allUsers={users}
+          currentUser={currentUser}
+          onClose={() => setShowShareModal(false)}
+          onGrantShare={handleGrantShare}
+          onRevokeShare={handleRevokeShare}
+        />
+      )}
+
+      {showUploadModal && (
+        <FileUploadModal
+          onClose={() => setShowUploadModal(false)}
+          onUploadSuccess={handleUploadSuccess}
+          currentUserId={currentUser.id}
+        />
+      )}
+
+      {showExportModal && currentDoc && (
+        <ExportModal document={currentDoc} onClose={() => setShowExportModal(false)} />
+      )}
+
+      {showAIDraftModal && currentDoc && (
+        <AIDraftModal
+          documentTitle={currentDoc.title}
+          documentContent={currentDoc.content}
+          onInsertContent={handleInsertAIContent}
+          onClose={() => setShowAIDraftModal(false)}
+        />
+      )}
+
+      {showHistoryModal && currentDoc && (
+        <VersionHistoryModal
+          documentId={currentDoc.id}
+          currentUserId={currentUser.id}
+          onClose={() => setShowHistoryModal(false)}
+          onRestore={handleRestoreHistory}
+        />
+      )}
     </div>
   );
 }
