@@ -13,12 +13,12 @@ Date: **August 29, 2026**
 | Deliverable | Location / Details |
 | :--- | :--- |
 | **GitHub Source Code Repository** | [https://github.com/Abhi0833-eng/ajaia-docs](https://github.com/Abhi0833-eng/ajaia-docs) |
+| **Live Product Deployment URL** | [https://ajaia-docs-five-mu.vercel.app](https://ajaia-docs-five-mu.vercel.app) |
 | **Local Setup Guide** | [`README.md`](file:///C:/Users/abhis/.gemini/antigravity-ide/scratch/ajaia-docs/README.md) |
 | **Architecture & Tradeoffs Note** | [`ARCHITECTURE.md`](file:///C:/Users/abhis/.gemini/antigravity-ide/scratch/ajaia-docs/ARCHITECTURE.md) |
 | **AI-Native Workflow Note** | [`AI_WORKFLOW.md`](file:///C:/Users/abhis/.gemini/antigravity-ide/scratch/ajaia-docs/AI_WORKFLOW.md) |
 | **Product Walkthrough Guide** | [`WALKTHROUGH.md`](file:///C:/Users/abhis/.gemini/antigravity-ide/scratch/ajaia-docs/WALKTHROUGH.md) |
 | **Walkthrough Video URL** | `https://youtu.be/sample-walkthrough-link` *(Placeholder)* |
-| **Live Product Deployment URL** | `https://rich-things-yell.loca.lt` *(Live Public Host)* |
 
 ---
 
